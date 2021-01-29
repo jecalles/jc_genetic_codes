@@ -1,0 +1,6 @@
+[submodule "synbio"]
+	path = synbio
+	url = https://github.com/jecalles/synbio.git
+[submodule "z3helpers"]
+	path = z3helpers
+	url = https://github.com/jecalles/z3helpers.git
