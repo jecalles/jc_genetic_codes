@@ -1,0 +1,24 @@
+[[source]]
+url = "https://pypi.org/simple"
+verify_ssl = true
+name = "pypi"
+
+[packages]
+jedi = "==0.17.2"
+numpy = "*"
+matplotlib = "*"
+pandas = "*"
+biopython = "*"
+ipython = "*"
+pytest = "*"
+synbio-tooling = {editable = true, path = "/Users/jonathancalles/python/src/synbio"}
+ipykernel = "*"
+tqdm = "*"
+z3-solver = "*"
+z3helpers-jecalles = {editable = true, path = "/Users/jonathancalles/python/src/z3helpers"}
+ipdb = "*"
+
+[dev-packages]
+
+[requires]
+python_version = "3.8"
