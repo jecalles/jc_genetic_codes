@@ -125,6 +125,9 @@ solver.add(geneB_constraints)
 
 for elem in translates_same(geneA_prot_variables, str(geneA.seq.translate())):
     solver.add_soft(elem)
+    
+for elem in translates_same(geneB_prot_variables, str(geneB.seq.translate())):
+    solver.add_soft(elem)
 
 print("writing string representation to file")
 with open("smt-lib_string.txt", "w") as handle:
