@@ -8,7 +8,7 @@ from synbio.annotations import Location, Part
 from synbio.codes import Code
 from synbio.utils import dNTPs, get_codons
 from z3helpers.definitions import (
-    NucleotideSort, z3nucleotides, 
+    NucleotideSort, z3nucleotides,
     AminoSort, z3aminos, NULL, STOP,
     triplet_dna_codons, amino_to_z3amino,
     sequence_variables,
@@ -17,7 +17,7 @@ from z3helpers.definitions import (
 # phiX174 specific stuffs
 with open("phiX174.pkl", "rb") as handle:
     phiX174 = pickle.load(handle)
-    
+
 region = Location(1155, 1521, "FWD")
 offset = region.start
 
@@ -38,17 +38,21 @@ geneB_prot_variables = [
     for i in range(int(len(geneB.seq)/3))
 ]
 
+
 def z3nuc_to_str(iterable):
     dict_ = {
         z3nuc: str_nuc
         for z3nuc, str_nuc in zip(z3nucleotides, dNTPs)
     }
     return ''.join(dict_[nuc] for nuc in iterable)
+
+
 def exactly_one_codon_per_amino(T, exclude=(NULL, STOP)):
     return [
         PbEq([(T[c] == aa, 1) for c in triplet_dna_codons], k=1)
         for aa in z3aminos if aa not in exclude
     ]
+
 
 def compatible_with_standard_code(T):
     sc = Code()
@@ -58,14 +62,15 @@ def compatible_with_standard_code(T):
         for codon in triplet_dna_codons
     ]
 
+
 def RED20(T):
     return exactly_one_codon_per_amino(T) + compatible_with_standard_code(T)
 
 
 def translation_constraints(code, dna_variables, prot_variables, location, offset, stop_flag=False):
-    start = location.start - offset 
+    start = location.start - offset
     end = location.end - offset
-    
+
     codon_list = get_codons(dna_variables[start:end])
 
     # ensure no nulls and proper termination
@@ -77,30 +82,35 @@ def translation_constraints(code, dna_variables, prot_variables, location, offse
     null_constraints = [
         aa != NULL for aa in prot_variables
     ]
-    
+
     code_implications = [
         z3.Implies(z3.And(str_codon[0] == z3codon[0],
                           str_codon[1] == z3codon[1],
                           str_codon[2] == z3codon[2]),
                    z3amino == code[z3nuc_to_str(z3codon)])
         for str_codon, z3amino in zip(codon_list, prot_variables)
-        for z3codon in itertools.product(z3nucleotides, repeat=3) 
+        for z3codon in itertools.product(z3nucleotides, repeat=3)
     ]
-    
+
     return stop_constraints + null_constraints + code_implications
 
 #####################
+
+
 def translates_same(prot_variables, prot_seq):
     return [
         var_aa == amino_to_z3amino[wt_aa]
         for var_aa, wt_aa in zip(prot_variables, prot_seq)
     ]
 
+
 print("building gene A constraints")
-geneA_constraints = translation_constraints(T, dna_variables, geneA_prot_variables, geneA.location, 1155)
+geneA_constraints = translation_constraints(
+    T, dna_variables, geneA_prot_variables, geneA.location, 1155)
 
 print("building gene B constraints")
-geneB_constraints = translation_constraints(T, dna_variables, geneB_prot_variables, geneB.location, 1155, stop_flag=True)
+geneB_constraints = translation_constraints(
+    T, dna_variables, geneB_prot_variables, geneB.location, 1155, stop_flag=True)
 
 print("lets do this!")
 
@@ -116,6 +126,12 @@ solver.add(geneB_constraints)
 for elem in translates_same(geneA_prot_variables, str(geneA.seq.translate())):
     solver.add_soft(elem)
 
-result = solver.check()
-if solver.check() == sat:
-    print(solver.model())
+print("writing string representation to file")
+with open("smt-lib_string.txt", "w") as handle:
+    handle.write(solver.sexpr())
+
+# result = solver.check()
+# if solver.check() == sat:
+#     print(solver.model())
+
+print("done!")
