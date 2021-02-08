@@ -18,7 +18,7 @@ from z3helpers.utils import add_constraints
 # set z3 defaults
 z3.set_param("smt.bv.eq_axioms", False)
 z3.set_param("smt.phase_caching_on", 80000)
-# z3.set_param("opt.enable_lns", True)
+z3.set_param("opt.enable_lns", True)
 
 # global variables
 A_START = 1155
@@ -114,5 +114,5 @@ if __name__ == "__main__":
     with Pool(10) as pool:
         results = pool.map(analyze_prefix, jobs)
 
-    with open("prefix_search_results.txt", "wb") as handle:
+    with open("prefix_search_results_local.txt", "wb") as handle:
         pickle.dump(results, handle)
