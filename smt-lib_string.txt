@@ -22498,3 +22498,4 @@
 (assert-soft (= geneB_120 F) :weight 1)
 (assert-soft (= geneB_121 *) :weight 1)
 (check-sat)
+(get-info :reason-unknown)
