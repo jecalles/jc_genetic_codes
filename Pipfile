@@ -14,7 +14,6 @@ pytest = "*"
 synbio-tooling = {editable = true, path = "/Users/jonathancalles/python/src/synbio"}
 ipykernel = "*"
 tqdm = "*"
-z3-solver = "*"
 z3helpers-jecalles = {editable = true, path = "/Users/jonathancalles/python/src/z3helpers"}
 ipdb = "*"
 
