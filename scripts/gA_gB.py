@@ -8,7 +8,7 @@ from z3helpers.constraints import *
 from z3helpers.utils import add_constraints
 
 # phiX174 specific stuffs
-with open("phiX174.pkl", "rb") as handle:
+with open("../phiX174.pkl", "rb") as handle:
     phiX174 = pickle.load(handle)
     
 region = Location(1155, 1521, "FWD")
@@ -49,7 +49,7 @@ add_constraints(solver, geneB_translation_constraints)
 # add soft constraints
 add_constraints(solver, translation_obj, hard=False)
 
-with open("smt-lib_string.txt", "w") as handle:
+with open("../smt-lib_string.txt", "w") as handle:
     handle.write(solver.sexpr())
 ## solve
 #if solver.check() == z3.sat:
