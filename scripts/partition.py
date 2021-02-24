@@ -4,7 +4,7 @@ import re
 dna = re.compile("dna_(\d+)")
 
 opt = Optimize()
-opt.from_file("benchmarks/bench.smt2")
+opt.from_file("../benchmarks/bench.smt2")
 
 set_option("sat.random_seed",23)
 
