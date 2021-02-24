@@ -18,6 +18,7 @@ geneA = Part(seq=phiX174, name="A gene", kind="CDS", location=region)
 geneB = phiX174.annotations["B gene"]
 
 # define z3 variables
+
 T = code_dict(triplet_dna_codons, AminoBitVecSort)
 dna_seq = dna_variables(region, NucleotideEnumSort)
 geneA_prot_seq = protein_variables(geneA, AminoBitVecSort)
