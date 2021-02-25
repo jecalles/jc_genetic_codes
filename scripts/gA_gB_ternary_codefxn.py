@@ -43,8 +43,8 @@ if __name__ == "__main__":
     add_constraints(solver, f_codon_true_mapping(f_nuc_to_codon))
     add_constraints(
         solver,
-        standard_code(
-            T, dna_codons=list(itertools.product(z3nucleotides, repeat=3))
+        RED20(
+            T, codons=list(itertools.product(z3nucleotides, repeat=3))
         )
     )
     add_constraints(solver, geneA_translation_constraints)

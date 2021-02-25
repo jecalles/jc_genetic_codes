@@ -41,16 +41,16 @@ if __name__ == "__main__":
     solver = z3.Optimize()
     # add hard constraints
     add_constraints(solver, f_codon_true_mapping(f_nuc_to_codon))
-    add_constraints(solver, standard_code(T))#RED20(T))
+    add_constraints(solver, RED20(T))
     add_constraints(solver, geneA_translation_constraints)
     add_constraints(solver, geneB_translation_constraints)
     # add soft constraints
     add_constraints(solver, translation_obj, hard=False)
 
-    # # write problem as smt-lib2 string
-    # with open("../benchmarks/code_as_unary_fxn.smt2", "w") as handle:
-    #     handle.write(solver.sexpr())
-    #
+    # write problem as smt-lib2 string
+    with open("../benchmarks/code_as_unary_fxn.smt2", "w") as handle:
+        handle.write(solver.sexpr())
+
     # solve
     if solver.check() == z3.sat:
         m = solver.model()
