@@ -1,7 +1,12 @@
 import pickle
+import itertools
+
+from synbio.annotations import Location, Part
 
 import z3
+from z3helpers.definitions import *
 from z3helpers.constraints import *
+from z3helpers.variables import *
 from z3helpers.utils import add_constraints
 from z3helpers.analysis import *
 
@@ -19,8 +24,8 @@ geneB = phiX174.annotations["B gene"]
 
 T = f_nuc_to_amino
 dna_seq = dna_variables(region)
-geneA_prot_seq = protein_variables(geneA)
-geneB_prot_seq = protein_variables(geneB)
+geneA_prot_seq = protein_variables(T, dna_seq, geneA, offset)
+geneB_prot_seq = protein_variables(T, dna_seq, geneB, offset)
 
 # add translation constraints
 geneA_translation_constraints = translation_constraints(
@@ -43,10 +48,9 @@ if __name__ == "__main__":
     add_constraints(solver, f_codon_true_mapping(f_nuc_to_codon))
     add_constraints(
         solver,
-        RED20(
-            T, codons=list(itertools.product(z3nucleotides, repeat=3))
-        )
+        RED20(T, codons=triplet_z3nucleotides)
     )
+
     add_constraints(solver, geneA_translation_constraints)
     add_constraints(solver, geneB_translation_constraints)
     # add soft constraints
@@ -56,12 +60,10 @@ if __name__ == "__main__":
     with open("../benchmarks/code_as_ternary_fxn.smt2", "w") as handle:
         handle.write(solver.sexpr())
 
-    # solve
-    if solver.check() == z3.sat:
-        m = solver.model()
-        print(f"DNA solution: {dna_from_model(dna_seq, m)}")
-        print(f"gA protein solution: {prot_from_model(geneA_prot_seq, m)}")
-        print(f"gB protein solution: {prot_from_model(geneB_prot_seq, m)}")
-
-    else:
-        print(z3.unsat)
+    # # solve
+    # if solver.check() == z3.sat:
+    #     m = solver.model()
+    #     print(f"DNA solution: {dna_from_model(dna_seq, m)}")
+    #
+    # else:
+    #     print(z3.unsat)

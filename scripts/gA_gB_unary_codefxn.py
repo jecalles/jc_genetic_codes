@@ -1,7 +1,11 @@
 import pickle
 
+from synbio.annotations import Location, Part
+
 import z3
+from z3helpers.definitions import *
 from z3helpers.constraints import *
+from z3helpers.variables import *
 from z3helpers.utils import add_constraints
 from z3helpers.analysis import *
 
@@ -19,8 +23,8 @@ geneB = phiX174.annotations["B gene"]
 
 T = f_codon_to_amino
 dna_seq = dna_variables(region)
-geneA_prot_seq = protein_variables(geneA)
-geneB_prot_seq = protein_variables(geneB)
+geneA_prot_seq = protein_variables(T, dna_seq, geneA, offset)
+geneB_prot_seq = protein_variables(T, dna_seq, geneB, offset)
 
 # add translation constraints
 geneA_translation_constraints = translation_constraints(
@@ -52,11 +56,9 @@ if __name__ == "__main__":
         handle.write(solver.sexpr())
 
     # solve
-    if solver.check() == z3.sat:
-        m = solver.model()
-        print(f"DNA solution: {dna_from_model(dna_seq, m)}")
-        print(f"gA protein solution: {prot_from_model(geneA_prot_seq, m)}")
-        print(f"gB protein solution: {prot_from_model(geneB_prot_seq, m)}")
-
-    else:
-        print(z3.unsat)
+    # if solver.check() == z3.sat:
+    #     m = solver.model()
+    #     print(f"DNA solution: {dna_from_model(dna_seq, m)}")
+    #
+    # else:
+    #     print(z3.unsat)
