@@ -60,10 +60,11 @@ if __name__ == "__main__":
     with open("../benchmarks/code_as_ternary_fxn.smt2", "w") as handle:
         handle.write(solver.sexpr())
 
-    # # solve
-    # if solver.check() == z3.sat:
-    #     m = solver.model()
-    #     print(f"DNA solution: {dna_from_model(dna_seq, m)}")
-    #
-    # else:
-    #     print(z3.unsat)
+    # solve
+    if solver.check() == z3.sat:
+        m = solver.model()
+        print(f"code: {code_from_model(T, m)}")
+        print(f"DNA solution: {dna_from_model(dna_seq, m)}")
+
+    else:
+        print(z3.unsat)

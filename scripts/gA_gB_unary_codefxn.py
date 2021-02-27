@@ -56,9 +56,10 @@ if __name__ == "__main__":
         handle.write(solver.sexpr())
 
     # solve
-    # if solver.check() == z3.sat:
-    #     m = solver.model()
-    #     print(f"DNA solution: {dna_from_model(dna_seq, m)}")
-    #
-    # else:
-    #     print(z3.unsat)
+    if solver.check() == z3.sat:
+        m = solver.model()
+        print(f"code: {code_from_model(T, m)}")
+        print(f"DNA solution: {dna_from_model(dna_seq, m)}")
+
+    else:
+        print(z3.unsat)
