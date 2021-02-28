@@ -6931,6 +6931,9 @@
 (assert (distinct (|nucleotides -> aminos| dna_1511 dna_1512 dna_1513) |0|))
 (assert (distinct (|nucleotides -> aminos| dna_1514 dna_1515 dna_1516) |0|))
 (assert (distinct (|nucleotides -> aminos| dna_1517 dna_1518 dna_1519) |0|))
+(set-option :sat.euf true)
+(check-sat-using sat)
+(exit)
 
 (assert-soft (= (|nucleotides -> aminos| dna_1155 dna_1156 dna_1157) E) :weight 1)
 (assert-soft (= (|nucleotides -> aminos| dna_1158 dna_1159 dna_1160) W) :weight 1)
