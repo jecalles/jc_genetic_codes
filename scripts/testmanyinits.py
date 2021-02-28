@@ -5,12 +5,12 @@
 #
 # The script furthermore uses the "new" core to solve for a constraint
 # encoding that uses functions and enumeration sorts. For this solver
-# the time to find each solution appears within the 1-2second range.
+# the time to find each solution appears within the 1-2second range
+# (based on tuning made on 02-27-2021).
 # So the idea is to be able to enumerate a _lot_ of random solutions
 # relatively quickly and then perform hill-climing on to of those solutions.
 #
-# Hill-climbing can be added to this script as well but we would want
-# to use an incremental solver object. 
+
 from z3 import *
 
 opt = Optimize()
