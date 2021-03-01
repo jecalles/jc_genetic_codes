@@ -19,7 +19,7 @@ opt.from_file("C:\\jc_genetic_codes\\benchmarks\\code_as_ternary_fxn.smt2")
 
 
 def get_soft(soft):
-    return [f.arg(0) for f in soft.children()]
+    return {f.arg(0) for f in soft.children()}
 
 soft = get_soft(opt.objectives()[0])
 
@@ -46,6 +46,71 @@ def test_one_init(i):
             reward += 1
     print("reward", reward)
 
+def add_def(s, fml):
+    name = Bool(f"{fml}")
+    s.add(name == fml)
+    return name
+
+def relax_core(s, core, Fs):
+    prefix = BoolVal(True)
+    Fs -= { f for f in core }
+    for i in range(len(core)-1):
+        prefix = add_def(s, And(core[i], prefix))
+        Fs |= { add_def(s, Or(prefix, core[i+1])) }
+
+#
+# Retrieve multiple independent cores.
+# It is cheaper to weaken independent cores
+# than to weaken one core at a time where
+# the later cores may be using new literals introduced
+# by weakening.
+#
+
+def get_cores(s, soft):
+    core = s.unsat_core()
+    remaining = soft - set(core)
+    cores = [core]
+    print("Core", len(core))
+    while unsat == s.check(remaining):
+        core = s.unsat_core()
+        print("Independent core", len(core))
+        cores += [core]
+        remaining = remaining - set(core)
+    return cores
+    
+
+#
+# The idea with weakening soft constraints is to
+# "remove" combinations of soft constraints that
+# contribute to lower bounds. The weakened soft
+# constraints become the resulting soft constraints
+# that are handed over to local search.
+#
+def weaken_soft():
+    s = Solver()
+    s.add(opt.assertions())
+    s.set("max_conflicts", 5000)
+    cost = 0
+    while True:
+        is_sat = s.check(soft)
+        if is_sat == unsat:
+            if len(s.unsat_core()) > 40:
+                print("cost adjustment", cost)
+                break
+            cores = get_cores(s, soft)
+            for core in cores:
+                relax_core(s, core, soft)
+                cost += 1
+            print(cost)
+        elif is_sat == unknown:
+            print("Cost adjustment", cost)
+            break
+        else:
+            print("MaxSAT", cost)
+            break
+
+weaken_soft()
+    
 set_option(verbose=1)
 def mss(s):
     mdl = s.model()
