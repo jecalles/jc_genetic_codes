@@ -5,13 +5,14 @@
 #
 # The script furthermore uses the "new" core to solve for a constraint
 # encoding that uses functions and enumeration sorts. For this solver
-# the time to find each solution appears within the 1-2second range
-# (based on tuning made on 02-27-2021).
+# the time to find each solution appears within the 1-2second range.
 # So the idea is to be able to enumerate a _lot_ of random solutions
 # relatively quickly and then perform hill-climing on to of those solutions.
 #
-
+# Hill-climbing can be added to this script as well but we would want
+# to use an incremental solver object. 
 from z3 import *
+import random
 
 opt = Optimize()
 opt.from_file("C:\\jc_genetic_codes\\benchmarks\\code_as_ternary_fxn.smt2")
@@ -32,7 +33,7 @@ set_param("sat.euf", True)
 set_option("tactic.default_tactic","sat")
 
 
-for i in range(100):
+def test_one_init(i):
     s = Solver()
     s.add(opt.assertions())
     set_param("sat.random_seed", i)
@@ -44,6 +45,77 @@ for i in range(100):
         if is_true(mdl.eval(f)):
             reward += 1
     print("reward", reward)
+
+set_option(verbose=1)
+def mss(s):
+    mdl = s.model()
+    s.set("max_conflicts", 10000)
+    backbones = set()
+    mss = { f for f in soft if is_true(mdl.eval(f)) }
+    ps = set(soft)
+    ps = ps - mss
+    qs = set()
+    s.add(mss)
+    #
+    # This is a greedy approximation of the kind of hill-climbing
+    # performed using the enable_lns option. The enable_lns option
+    # is tuned by delaying some commits and using phases to
+    # save on SAT search.
+    # 
+    while len(ps) > 0:
+        p = random.choice([p for p in ps])
+        is_sat = s.check([p])
+        print(is_sat)
+        if is_sat == sat:
+            rs = { q for q in ps if is_true(mdl.eval(q)) }
+            rs = rs | { q for q in qs if is_true(mdl.eval(q)) }
+            rs = rs | { p }
+            mss = mss | rs
+            ps = ps - mss
+            qs = qs - mss
+            print(len(mss))
+            s.add(rs)
+        elif is_sat == unsat:
+            backbones = backbones | { Not(p) }
+            s.add(Not(p))
+            ps = ps - { p }
+        else:
+            qs = qs | { p }
+            ps = ps - { p }
+        #
+        # Once 40+ soft constraints are chosen
+        # fix them and optimize the rest.
+        # TBD: build a hill-climbing variant on top
+        # of this, by initially optimizing once 40 are fixed,
+        # then select other random subsets of size 40 to see
+        # if current best solution can be optimized.
+        # Maintain a priority queue of such solutions, their values
+        # and pick among them.
+        # 
+        if len(mss) > 40:
+            o = Optimize()
+            o.add(opt.assertions())
+            o.add(mss)
+            for f in soft:
+                o.add_soft(f)
+            print(o.check())
+            return
+    print("reward", len(mss))
+    print("penalty", len(backbones))
+    print("undetermined", len(qs))
+        
+        
+    
+def test_init_and_climb(i):
+    s = Solver()
+    s.add(opt.assertions())
+    set_param("sat.random_seed", i)
+    s.check()
+    print(s.statistics())
+    mss(s)
+    
+for i in range(100):
+    test_init_and_climb(i)
         
 
 

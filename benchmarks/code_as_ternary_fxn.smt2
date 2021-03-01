@@ -7176,3 +7176,4 @@
 (assert-soft (= (|nucleotides -> aminos| dna_1514 dna_1515 dna_1516) F) :weight 1)
 (assert-soft (= (|nucleotides -> aminos| dna_1517 dna_1518 dna_1519) *) :weight 1)
 (check-sat)
+(get-objectives)
