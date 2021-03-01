@@ -11,6 +11,7 @@
 #
 from z3 import *
 import random
+import sys
 
 opt = Optimize()
 opt.from_file("C:\\jc_genetic_codes\\benchmarks\\code_as_ternary_fxn.smt2")
@@ -47,6 +48,7 @@ def test_one_init(i):
 def add_def(s, fml):
     name = Bool(f"{fml}")
     s.add(name == fml)
+    opt.add(name == fml)
     return name
 
 def relax_core(s, core, Fs):
@@ -83,6 +85,10 @@ def get_cores(s, soft):
 # contribute to lower bounds. The weakened soft
 # constraints become the resulting soft constraints
 # that are handed over to local search.
+# The search space for local search is reduced with
+# every weakening. In the limit, a full core-based
+# weakening leaves all remaining soft constraints satisfiable.
+# In our case we stop when reaching some threshold.
 #
 def weaken_soft():
     s = Solver()
@@ -91,6 +97,7 @@ def weaken_soft():
     cost = 0
     while True:
         is_sat = s.check(soft)
+        sys.stdout.flush()
         if is_sat == unsat:
             if len(s.unsat_core()) > 40:
                 print("cost adjustment", cost)
@@ -129,22 +136,22 @@ def mss(s):
         p = random.choice([p for p in ps])
         is_sat = s.check([p])
         print(is_sat)
+        ps = ps - { p }
         if is_sat == sat:
-            rs = { q for q in ps if is_true(mdl.eval(q)) }
+            rs = { p }
+            rs = rs | { q for q in ps if is_true(mdl.eval(q)) }
             rs = rs | { q for q in qs if is_true(mdl.eval(q)) }
-            rs = rs | { p }
             mss = mss | rs
-            ps = ps - mss
-            qs = qs - mss
+            ps = ps - rs 
+            qs = qs - rs
             print(len(mss))
             s.add(rs)
         elif is_sat == unsat:
             backbones = backbones | { Not(p) }
             s.add(Not(p))
-            ps = ps - { p }
         else:
             qs = qs | { p }
-            ps = ps - { p }
+        sys.stdout.flush()
         #
         # Once 40+ soft constraints are chosen
         # fix them and optimize the rest.
@@ -159,9 +166,12 @@ def mss(s):
             o = Optimize()
             o.add(opt.assertions())
             o.add(mss)
+            o.add(backbones)
+            set_param("smt.max_conflicts", 10000000)
             for f in soft:
                 o.add_soft(f)
             print(o.check())
+            sys.stdout.flush()
             return
     print("reward", len(mss))
     print("penalty", len(backbones))
