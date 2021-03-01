@@ -9,8 +9,6 @@
 # So the idea is to be able to enumerate a _lot_ of random solutions
 # relatively quickly and then perform hill-climing on to of those solutions.
 #
-# Hill-climbing can be added to this script as well but we would want
-# to use an incremental solver object. 
 from z3 import *
 import random
 
