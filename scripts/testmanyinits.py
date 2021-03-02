@@ -31,6 +31,10 @@ set_param("sat.euf", True)
 # core.
 set_option("tactic.default_tactic","sat")
 
+def display_model(mdl):
+    for d in mdl.decls():
+        if d.arity() == 0 and d.name().startswith("dna_"):
+            print(d.name(), mdl[d])
 
 def test_one_init(i):
     s = Solver()
@@ -162,15 +166,23 @@ def mss(s):
         # Maintain a priority queue of such solutions, their values
         # and pick among them.
         # 
-        if len(mss) > 40:
+        if len(mss) > 45:
             o = Optimize()
             o.add(opt.assertions())
             o.add(mss)
             o.add(backbones)
+            # TBD, not sure if dynamic Ackerman is really helpful:
+            set_param("smt.dack.eq", True)
+            # Bounded exploration:
             set_param("smt.max_conflicts", 10000000)
+            # Try this option to get incremental solutions faster, but
+            # full solving is currently much slower with this option on.
+            # o.set("enable_lns", True)
             for f in soft:
                 o.add_soft(f)
+            o.set_on_model(display_model)
             print(o.check())
+            print(o.statistics())
             sys.stdout.flush()
             return
     print("reward", len(mss))
