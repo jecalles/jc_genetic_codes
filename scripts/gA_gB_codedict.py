@@ -51,11 +51,11 @@ add_constraints(solver, geneB_translation_constraints)
 # add soft constraints
 add_constraints(solver, translation_obj, hard=False)
 
-with open("../smt-lib_string.txt", "w") as handle:
+with open("../benchmarks/gA_gB_codedict.smt2", "w") as handle:
     handle.write(solver.sexpr())
 
-# solve
-if solver.check() == z3.sat:
-    m = solver.model()
-else:
-    print(z3.unsat)
+# # solve
+# if solver.check() == z3.sat:
+#     m = solver.model()
+# else:
+#     print(z3.unsat)
