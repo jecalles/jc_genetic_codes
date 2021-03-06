@@ -45,16 +45,22 @@ def pick_hs_(K, lo, soft):
     print(len(hs))
     return hs, lo
 
+opt_backoff_limit = 0
+opt_backoff_count = 0
 timeout_value = 6000
 def pick_hs(K, lo, soft):
     global timeout_value
+    global opt_backoff_limit
+    global opt_backoff_count
+    if opt_backoff_count < opt_backoff_limit:
+        opt_backoff_count += 1
+        return pick_hs_(K, lo, soft)
     opt = Optimize()
     for k in K:
         opt.add(Or([soft.formula2name[f] for f in k]))        
     for n in soft.formula2name.values():
         obj = opt.add_soft(Not(n))
     opt.set("timeout", timeout_value)
-    timeout_value += 500
     is_sat = opt.check()
     lo = max(lo, opt.lower(obj).as_long())
     if is_sat == sat:
@@ -62,8 +68,11 @@ def pick_hs(K, lo, soft):
         hs = [soft.name2formula[n] for n in soft.formula2name.values() if is_true(mdl.eval(n))]
         return hs, lo
     else:
-        print("Timeout", lo)
-        return pick_hs_(K, soft)
+        print("Timeout", timeout_value, "lo", lo, "limit", opt_backoff_limit)
+        opt_backoff_limit += 1
+        opt_backoff_count = 0
+        timeout_value += 500
+        return pick_hs_(K, lo, soft)
 
 
 
