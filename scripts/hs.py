@@ -30,8 +30,9 @@ def improve(hi, mdl, new_model, soft):
 #
 # This can improve lower bound, but is expensive.
 # Note that Z3 does not work well for hitting set optimization.
-# Better solvers use MIP solvers that contain better
-# tuned approaches. Would be nice to have a good hitting set
+# MIP solvers contain better
+# tuned approaches thanks to LP lower bounds and likely other properties.
+# Would be nice to have a good hitting set
 # heuristic built into Z3....
 #
 def pick_hs_(K, lo, soft):
@@ -42,7 +43,7 @@ def pick_hs_(K, lo, soft):
             continue
         h = random.choice([h for h in k])
         hs = hs | { h }
-    print(len(hs))
+    print("approximate hitting set", len(hs), "smallest possible size", lo)
     return hs, lo
 
 opt_backoff_limit = 0
@@ -76,9 +77,9 @@ def pick_hs(K, lo, soft):
 
 
 
-def local_mss(hi, mdl, s, mss, ps, soft):
-    ps = set(ps)
-    mss = set(mss)
+def local_mss(hi, mdl, s, soft):
+    mss = { f for f in soft.formulas if is_true(mdl.eval(f)) }
+    ps = set(soft.formulas) - mss
     backbones = set()
     qs = set()
     while len(ps) > 0:
@@ -108,36 +109,39 @@ def local_mss(hi, mdl, s, mss, ps, soft):
             qs = qs | { p }
     return hi, mdl
 
-#
-# First stab at performing some local hill-climbing based on a solution.
-# 
-def local_improve(hi, mdl, s, new_model, soft):
-    mss = { s for s in soft.formulas if is_true(new_model.eval(s)) }
-    cs = set(soft.formulas) - mss
-    for f in mss:
-        mss1 = mss - { f }
-        mss1 = mss1 | { Not(f) }
-        if sat == s.check(mss1):
-            mdl1 = s.model()
-            mss1 = mss1 | { c for c in cs if is_true(mdl1.eval(c)) }
-            cs = cs - mss1
-            hi, mdl = local_mss(hi, mdl, s, mss1, cs, soft)
-    return hi, mdl
-
-def get_cores(hi, mdl, s, soft):
+def get_cores(hi, hs, mdl, s, soft):
     core = s.unsat_core()
-    remaining = set(soft.formulas) - set(core)
+    remaining = set(soft.formulas) - set(core) - set(hs)
+    num_cores = 0
     cores = [core]
-    print("Core", len(core))
-    while True:
+    print("new core of size", len(core))    
+    while True:        
         is_sat = s.check(remaining)
         if unsat == is_sat:
             core = s.unsat_core()
-            print("Independent core", len(core))
+            print("new core of size", len(core))
             cores += [core]
             remaining = remaining - set(core)
+        elif sat == is_sat and num_cores == len(cores):
+            hi, mdl = local_mss(hi, s.model(), s, soft)
+            break
         elif sat == is_sat:
             hi, mdl = improve(hi, mdl, s.model(), soft)
+
+            #
+            # Extend the size of the hitting set using the new cores
+            # and update remaining using these cores.
+            # The new hitting set contains at least one new element
+            # from the original core
+            #
+            hs = set(hs)
+            for i in range(num_cores, len(cores)):
+                h = random.choice([c for c in cores[i]])
+                hs = hs | { h }
+            remaining = set(soft.formulas) - set(core) - set(hs)
+            num_cores = len(cores)
+        else:
+            print(is_sat)
             break
     return hi, mdl, cores
 
@@ -147,21 +151,13 @@ def hs(lo, hi, mdl, K, s, soft):
     if is_sat == sat:
         hi, mdl = improve(hi, mdl, s.model(), soft)
     elif is_sat == unsat:
-        if True:
-            hi, mdl, cores = get_cores(hi, mdl, s, soft)
-            mss = { f for f in soft.formulas if is_true(mdl.eval(f)) }
-            ps = set(soft.formulas) - mss
-            K +=  [set(core) for core in cores]
-            hi, mdl = local_mss(hi, mdl, s, mss, ps, soft)
-        else:
-            core = s.unsat_core()
-            K += [set(core)]
-        # hi, mdl = local_mss(hi, mdl, s, set(), ps, soft)
-        # hi, mdl = local_improve(hi, mdl, s, mdl, soft)
-        print("cores", len(K))
+        hi, mdl, cores = get_cores(hi, hs, mdl, s, soft)
+        K +=  [set(core) for core in cores]
+        hi, mdl = local_mss(hi, mdl, s, soft)
+        print("total number of cores", len(K))
     else:
         print("unknown")
-    print("hs [", lo, ", ", hi, "]")
+    print("maxsat [", lo, ", ", hi, "]")
     return lo, hi, mdl, K
         
 #set_option(verbose=1)
@@ -178,9 +174,8 @@ def main(file):
     while lo < hi:
         lo, hi, mdl, K = hs(lo, hi, None, K, s, soft)
 
-main("C:\\jc_genetic_codes\\benchmarks\\code_as_ternary_bv.smt2")
 
-#def __main__():
-#    main(sys.argv[0])
+if __name__ == '__main__':
+    main(sys.argv[1])
         
     
