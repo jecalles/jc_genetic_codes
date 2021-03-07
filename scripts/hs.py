@@ -29,7 +29,7 @@ def restrict_cs(s, cs, Fs):
     Fs -= { f for f in cs }
     for i in range(len(cs)-1):
         prefix = add_def(s, Or(cs[i], prefix))
-        Fs |= { add_def(s, And(prefix, core[i+1])) }
+        Fs |= { add_def(s, And(prefix, cs[i+1])) }
     
 
                 
@@ -37,51 +37,71 @@ class Soft:
     def __init__(self, soft):
         self.formulas = soft        
         self.offset = 0
-        self.small_core_size = 6
-        self.small_core_max_count = 2
+        self.small_set_size = 6
+        self.small_set_threshold = 1
+        self.num_max_res_failures = 0
         self.init_names()
 
     def init_names(self):
         self.name2formula = { Bool(f"s{s}") : s for s in self.formulas }
         self.formula2name = { s : v for (v, s) in self.name2formula.items() }
 
-    def has_many_small_cores(self, cores):
-        small_count = 0
-        for c in cores:
-            if len(c) <= self.small_core_size:
-                small_count += 1
-        return self.small_core_max_count <= small_count
+    def has_many_small_sets(self, sets):
+        small_count = len([c for c in sets if len(c) <= self.small_set_size])
+        return self.small_set_threshold <= small_count
 
-    def small_disjoint_cores(self, cores):
+    def get_small_disjoint_sets(self, sets):
         hs = set()
         result = []
-        for core in cores:
-            if len(core) > self.small_core_size:
-                continue
-            if not any(c in hs for c in core):
-                result += [core]
-                hs = hs | set(core)
+        min_size = min(len(s) for s in sets)
+        def insert(bound, sets, hs, result):            
+            for s in sets:
+                if len(s) <= bound and not any(c in hs for c in s):
+                    result += [s]
+                    hs = hs | set(s)
+            return hs, result
+        for sz in range(min_size, self.small_set_size + 1):
+            hs, result = insert(sz, sets, hs, result)
         return result
 
     def maxres(self, s, cores, cs, lo, hi):
-        if self.has_many_small_cores(cores):
-            cores = self.small_disjoint_cores(cores)
+        #
+        # If there are sufficiently many small cores, then
+        # we reduce the soft constraints by maxres.
+        #
+        if self.has_many_small_sets(cores):
+            self.num_max_res_failures = 0
+            cores = self.get_small_disjoint_sets(cores)
             self.formulas = set(self.formulas)
             for core in cores:
+                self.small_set_size = min(self.small_set_size, len(core) + 2)
                 relax_core(s, core, self.formulas)
             self.init_names()
             self.offset += len(cores)
             print("New offset", self.offset)
             return [], [], lo - len(cores), hi - len(cores)
-        if self.has_many_small_cores(cs):
-            cs = self.small_disjoint_cores(cs)
+        #
+        # If there are sufficiently many small correction sets, then
+        # we reduce the soft constraints by dual maxres (IJCAI 2014)
+        # 
+        if self.has_many_small_sets(cs):
+            self.num_max_res_failures = 0
+            cs = self.get_small_disjoint_sets(cs)
             for corr_set in cs:
+                self.small_set_size = min(self.small_set_size, len(corr_set) + 2)
                 restrict_cs(s, corr_set, self.formulas)
                 s.add(Or(corr_set))
             self.init_names()
             print("Restrict by correction set")
             return [], [], lo, hi
-               
+        #
+        # Increment the failure count. If the failure count reaches a threshold
+        # then increment the lower bounds for performing maxres or dual maxres
+        # 
+        self.num_max_res_failures += 1
+        if self.num_max_res_failures > 6:
+            self.num_max_res_failures = 0
+            self.small_set_size += 2               
         return cores, cs, lo, hi
         
 
@@ -93,7 +113,7 @@ def count_sets_by_size(cores):
             sizes[sz] = 0
         sizes[sz] += 1
     sizes = list(sizes.items())
-    sorted(sizes, key = lambda p : p[0])
+    sizes = sorted(sizes, key = lambda p : p[0])
     print(sizes)
         
 
@@ -103,6 +123,7 @@ def count_sets_by_size(cores):
 class Hs:
     def __init__(self, soft, s):
         self.s = s                  # solver object
+        self.formulas = soft
         self.soft = Soft(soft)      # Soft constraints
         self.mdl = None             # Current best model
         self.lo = 0                 # Current lower bound
@@ -112,6 +133,16 @@ class Hs:
         self.opt_backoff_limit = 0  
         self.opt_backoff_count = 0
         self.timeout_value = 6000
+
+    def save_model(self):
+        # 
+        # You can save a model here.
+        # For example, add the string: self.mdl.sexpr()
+        # to a file
+        # print(f"Bound: {self.lo}")
+        # for f in self.formulas:
+        #     print(f"{f} := {self.mdl.eval(f)}")
+        pass
 
     def pick_hs_(self):
         hs = set()
@@ -165,6 +196,7 @@ class Hs:
         if cost <= self.hi:
             print("improve", self.hi, cost)
             self.mdl = new_model
+            self.save_model()
         if cost < self.hi:
             self.hi = cost
         assert self.mdl
@@ -257,7 +289,7 @@ class Hs:
             print("total number of correction sets", len(self.Cs))
         else:
             print("unknown")
-        print("maxsat [", self.lo + soft.offset, ", ", self.hi + soft.offset, "]")
+        print("maxsat [", self.lo + soft.offset, ", ", self.hi + soft.offset, "]","offset", soft.offset)
         count_sets_by_size(self.K)
         count_sets_by_size(self.Cs)
         self.K, self.Cs, self.lo, self.hi = soft.maxres(self.s, self.K, self.Cs, self.lo, self.hi)
