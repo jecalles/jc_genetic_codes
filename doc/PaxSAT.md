@@ -338,6 +338,8 @@ This provides additional ways to block unhelpful assignments from `p1`.
 
 * Note that state of Art MaxSAT solvers appear to be based on hitting sets and not core-guided as Z3's default solver.
 
+* A survey on MaxSAT <a href="https://www.birs.ca/cmo-workshops/2018/18w5208/files/BacchusFahiem.pdf">by Bacchus</a>.
+
 [BIB]
 
 
