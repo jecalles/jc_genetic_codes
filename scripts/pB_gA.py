@@ -19,7 +19,7 @@ geneA = Part(seq=phiX174, name="A gene", kind="CDS", location=region)
 
 pB = Part(seq=phiX174, name="promoter B", kind="promoter", location=region)
 
-T = f_nuc_to_amino
+T = enum_nuc_to_enum_amino
 dna_seq = dna_variables(region)
 geneA_prot_seq = protein_variables(T, dna_seq, geneA, offset)
 
@@ -39,7 +39,7 @@ if __name__ == "__main__":
     z3.set_param("smt.phase_caching_on", 80000)
     solver = z3.Optimize()
     # add hard constraints
-    add_constraints(solver, f_codon_true_mapping(f_nuc_to_codon))
+    add_constraints(solver, f_codon_true_mapping(enum_nuc_to_enum_codon))
     add_constraints(solver, RED20(T, codons=triplet_z3nucleotides))
     add_constraints(solver, geneA_translation_constraints)
     # add soft constraints

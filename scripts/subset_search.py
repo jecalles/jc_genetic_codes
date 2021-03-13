@@ -11,9 +11,8 @@ from z3helpers.analysis import *
 from z3helpers.constraints import (
     RED20, translates_same, translation_constraints,
 )
-from z3helpers.definitions import (
-    code_dict, dna_variables, protein_variables, triplet_dna_codons,
-)
+from z3helpers.definitions import triplet_dna_codons
+from z3helpers.variables import code_dict, dna_variables, protein_variables
 from z3helpers.utils import add_constraints
 
 
@@ -162,7 +161,7 @@ def do_jobs(job: Job) -> Result:
 
     # extract cost function values
     m = solver.model()
-    pA = prot_from_model(geneA_prot_seq, m)
+    pA = prot_from_model(geneA_prot_seq, m) # this doesn't work
     pB = prot_from_model(geneB_prot_seq, m)
 
     obj_A = objective_function(pA, partA.seq.translate())

@@ -85,7 +85,7 @@ def main():
              f"../outfiles/window_{type_}_obj_fxn_res.png")
             for type_ in search_types])
     )
-   dfs = [
+    dfs = [
         load_data(filename)
         for filename in result_filenames
     ]
